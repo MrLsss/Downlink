@@ -1,0 +1,15 @@
+/build/
+/tdl_MacOS_arm64/
+/tdl_Windows_amd64/
+/tdl_Linux_*/
+/tdldesk
+/.mygo/
+/.toolchain/
+/.cache/
+/.tmp/
+/.reference/
+/.scratch/
+/.envrc.local
+.DS_Store
+mygo_windows_*.syso
+app.log

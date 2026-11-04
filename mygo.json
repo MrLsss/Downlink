@@ -1,0 +1,7 @@
+{
+  "name": "Downlink",
+  "identifier": "app.downlink.desktop",
+  "version": "0.0.1",
+  "out": "build",
+  "icon": "icon.png"
+}
