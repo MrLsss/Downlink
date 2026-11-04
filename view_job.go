@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
@@ -45,8 +46,14 @@ func (a *app) jobCard(c *ui.Context, pal palette) {
 				secondaryButton(c, "取消").OnClick(func() { a.cancelDownload() })
 			} else {
 				secondaryButton(c, "打开目录").OnClick(func() { openPath(j.dir) })
+				secondaryButton(c, "关闭").OnClick(func() { a.closeJob(j) })
 			}
 		})
+		if j.running && time.Since(j.startedAt) > 15*time.Second {
+			if _, _, got, _ := j.totals(); got == 0 {
+				ui.Text(c, "已经开始下载，但这 15 秒里没有收到数据。").FontSize(sizeMeta).TextColor(pal.warn)
+			}
+		}
 		if j.errText != "" {
 			ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
 				ui.Icon(c, iconAlert).FontSize(13).TextColor(pal.danger)

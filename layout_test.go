@@ -181,3 +181,16 @@ func TestTasksPageLayout(t *testing.T) {
 		t.Fatalf("the empty state sits above the page title：%v <= %v", empty.Y, title.Y)
 	}
 }
+
+// TestSettingsSectionTitlesStandOut keeps the three section titles larger than
+// the field labels under them.
+func TestSettingsSectionTitlesStandOut(t *testing.T) {
+	a, tt := newTester(t)
+	a.page = "settings"
+	tt.Frame()
+	heading := inside(t, tt, "连接", 1120, 764)
+	label := inside(t, tt, "代理", 1120, 764)
+	if heading.H <= label.H {
+		t.Fatalf("标题 %v 高，标签 %v 高，标题不再突出", heading.H, label.H)
+	}
+}

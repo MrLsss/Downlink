@@ -288,7 +288,10 @@ func (a *app) cancelDownload() {
 	}
 	j.cancelling = true
 	j.sess.interrupt()
-	time.AfterFunc(6*time.Second, func() {
+	// Ctrl-C stops a download that still answers the terminal. One that does
+	// not answer it gets killed, together with anything it started, so that it
+	// cannot keep the tdl database locked for the next run.
+	time.AfterFunc(2*time.Second, func() {
 		if a.win == nil {
 			return
 		}
@@ -298,6 +301,14 @@ func (a *app) cancelDownload() {
 			}
 		})
 	})
+}
+
+// closeJob takes the finished card away, so the page is ready for the next
+// download.
+func (a *app) closeJob(j *job) {
+	if a.job == j && !j.running {
+		a.job = nil
+	}
 }
 
 // openLogin starts a login and opens the dialog that asks what it needs.

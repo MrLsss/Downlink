@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -201,5 +202,57 @@ func TestStaleJobDoesNotFinishTheNewOne(t *testing.T) {
 	a.finishDownload(old, nil)
 	if !cur.running {
 		t.Fatal("the stale run finished the current one")
+	}
+}
+
+func TestFinishedJobCanBeClosed(t *testing.T) {
+	a, tt := newTester(t)
+	j := newJob("/tmp/tdl", []string{"https://t.me/example/456"})
+	a.job = j
+	a.finishDownload(j, nil)
+	tt.Frame()
+	if !tt.HasText("关闭") {
+		t.Fatalf("the finished card offers no way out：%q", tt.Texts())
+	}
+	if err := tt.Click("关闭"); err != nil {
+		t.Fatal(err)
+	}
+	if a.job != nil {
+		t.Fatalf("job still on the page after 关闭：%+v", a.job)
+	}
+	tt.Frame()
+	if tt.HasText("下载完成") {
+		t.Fatalf("the closed card still shows：%q", tt.Texts())
+	}
+}
+
+func TestCancelledJobCanBeClosedAndStartedAgain(t *testing.T) {
+	a, tt := newTester(t)
+	j := newJob("/tmp/tdl", []string{"https://t.me/example/456"})
+	j.cancelling = true
+	a.job = j
+	a.finishDownload(j, nil)
+	a.links = "https://t.me/example/456"
+	tt.Frame()
+	if err := tt.Click("关闭"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("开始下载"); err != nil {
+		t.Fatal(err)
+	}
+	if a.notice != "先指定 tdl 可执行文件" {
+		t.Fatalf("开始下载 did nothing: notice %q, page %q", a.notice, a.page)
+	}
+}
+
+func TestRunningJobSaysWhenNoBytesArrive(t *testing.T) {
+	a, tt := newTester(t)
+	j := newJob("/tmp/tdl", []string{"https://t.me/example/456"})
+	j.startedAt = time.Now().Add(-20 * time.Second)
+	a.job = j
+	tt.Frame()
+	if !tt.HasText("已经开始下载，但这 15 秒里没有收到数据。") {
+		t.Fatalf("the stalled download is not reported：%q", tt.Texts())
 	}
 }

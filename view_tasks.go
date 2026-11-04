@@ -81,9 +81,10 @@ func (a *app) historyRow(c *ui.Context, i int, pal palette) {
 
 // section is one titled group of settings, separated from its neighbours by
 // space alone.
-func section(c *ui.Context, pal palette, title string, fn func()) {
+func section(c *ui.Context, title string, fn func()) {
+	t := c.Theme()
 	ui.Column(c).FillWidth().Gap(14).Children(func() {
-		quietLabel(c, pal, title)
+		ui.Text(c, title).FontSize(sizeLead).FontWeight(600).TextColor(t.Text)
 		fn()
 	})
 }
@@ -93,7 +94,7 @@ func (a *app) settingsPage(c *ui.Context, pal palette) {
 	a.scrolled(c, "settings", func() {
 		a.header(c, pal, "设置", "程序自己不做网络请求，所有操作都交给你指定的 tdl 完成。")
 
-		section(c, pal, "tdl 可执行文件", func() {
+		section(c, "tdl 可执行文件", func() {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				if ui.TextInput(c, &a.cfg.Binary).Grow(1).FontSize(sizeBody).
 					Placeholder("留空时自动查找，或填写完整路径").Submitted() {
@@ -123,7 +124,7 @@ func (a *app) settingsPage(c *ui.Context, pal palette) {
 			hint(c, pal, "填写完整路径后按回车重新检测；留空时依次在 PATH、应用资源目录、可执行文件所在目录与工作目录下查找。")
 		})
 
-		section(c, pal, "连接", func() {
+		section(c, "连接", func() {
 			a.textField(c, "命名空间", "默认 default", &a.cfg.Namespace)
 			if found := namespaces(); len(found) > 0 {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -146,7 +147,7 @@ func (a *app) settingsPage(c *ui.Context, pal palette) {
 			hint(c, pal, "本机无法直连 Telegram 时填写；留空表示直连。")
 		})
 
-		section(c, pal, "下载", func() {
+		section(c, "下载", func() {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				if ui.TextInput(c, &a.cfg.Dir).Grow(1).FontSize(sizeBody).Changed() {
 					a.save()
@@ -162,7 +163,7 @@ func (a *app) settingsPage(c *ui.Context, pal palette) {
 		})
 
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
-			ui.Text(c, "Downlink 0.0.1 · 用 MyGo 构建").FontSize(sizeMeta).TextColor(pal.muted)
+			ui.Text(c, "Downlink 0.0.2 · 用 MyGo 构建").FontSize(sizeMeta).TextColor(pal.muted)
 			ui.Spacer(c)
 			secondaryButton(c, "使用文档").OnClick(func() { c.OpenURL("https://docs.iyear.me/tdl/zh/") })
 			secondaryButton(c, "打开 tdl 数据目录").OnClick(func() { openPath(tdlDataDir()) })

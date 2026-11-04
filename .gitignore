@@ -13,3 +13,4 @@
 .DS_Store
 mygo_windows_*.syso
 app.log
+/downlink

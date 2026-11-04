@@ -98,9 +98,11 @@ func (s *ptySession) wait() error {
 }
 
 func (s *ptySession) kill() {
-	if s.cmd.Process != nil {
-		s.cmd.Process.Kill()
+	if s.cmd.Process == nil {
+		return
 	}
+	killGroup(s.cmd.Process.Pid)
+	_ = s.cmd.Process.Kill()
 }
 
 func (s *ptySession) close() {

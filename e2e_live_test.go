@@ -85,3 +85,56 @@ func joinLines(lines []string) string {
 	}
 	return out
 }
+
+// TestE2ECancelStopsTheDownload cancels a transfer that has started and waits
+// for the tdl process to end, which is what the app's 取消 button does:
+//
+//	TDL_UI_E2E=1 TDL_UI_E2E_LIVE=1 TDL_UI_E2E_NS=mrlsss \
+//	TDL_UI_E2E_PROXY=http://127.0.0.1:7890 CGO_ENABLED=0 go test -run E2ECancel -v .
+func TestE2ECancelStopsTheDownload(t *testing.T) {
+	bin := e2eBinary(t)
+	if os.Getenv("TDL_UI_E2E_LIVE") == "" {
+		t.Skip("设置 TDL_UI_E2E_LIVE=1 后运行")
+	}
+	ns := os.Getenv("TDL_UI_E2E_NS")
+	if ns == "" {
+		t.Skip("需要 TDL_UI_E2E_NS")
+	}
+	dir := t.TempDir()
+	t.Setenv("HOME", realHome)
+	t.Setenv("TDL_UI_DATA_DIR", filepath.Join(dir, "app"))
+
+	a := newApp()
+	a.binPath = bin
+	a.cfg.Namespace = ns
+	a.cfg.Proxy = os.Getenv("TDL_UI_E2E_PROXY")
+	a.cfg.Threads = 1
+	a.cfg.Limit = 1
+
+	// This message stays at zero bytes on this machine, which is what makes it
+	// a good subject: the transfer is still running when it is cancelled.
+	urls := []string{"https://t.me/SWKGGX/42651"}
+	j := newJob(dir, urls)
+	sess, err := startPTY(bin, a.downloadArgs(urls, dir), j.consume)
+	if err != nil {
+		t.Fatalf("启动 tdl 失败：%v", err)
+	}
+	j.sess = sess
+	a.job = j
+
+	ended := make(chan error, 1)
+	go func() { ended <- sess.wait() }()
+
+	// Let the command reach the transfer before cancelling it.
+	time.Sleep(8 * time.Second)
+	a.cancelDownload()
+
+	select {
+	case <-ended:
+	case <-time.After(20 * time.Second):
+		sess.kill()
+		t.Fatalf("取消 20 秒后 tdl 仍在运行，输出：\n%s", joinLines(j.logTail))
+	}
+	sess.close()
+	t.Logf("取消后 tdl 已退出，输出：\n%s", joinLines(j.logTail))
+}
