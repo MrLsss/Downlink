@@ -163,7 +163,7 @@ func (a *app) settingsPage(c *ui.Context, pal palette) {
 		})
 
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
-			ui.Text(c, "Downlink 0.0.2 · 用 MyGo 构建").FontSize(sizeMeta).TextColor(pal.muted)
+			ui.Text(c, "Downlink 0.0.3 · 用 MyGo 构建").FontSize(sizeMeta).TextColor(pal.muted)
 			ui.Spacer(c)
 			secondaryButton(c, "使用文档").OnClick(func() { c.OpenURL("https://docs.iyear.me/tdl/zh/") })
 			secondaryButton(c, "打开 tdl 数据目录").OnClick(func() { openPath(tdlDataDir()) })
