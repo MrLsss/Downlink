@@ -124,11 +124,12 @@ func (j *job) consumeFile(message, rest string) {
 			fp.speed = speed
 		}
 	}
-	if fp.total <= 0 && fp.frac > 0 && fp.value > 0 {
+	// tdl never prints the size of a file, only how much of it is here and
+	// how far along it is. The percent keeps one decimal, so a sample below
+	// one percent divides by a rounded fraction and lands far off; from one
+	// percent up the estimate is good, and it gets better as the file fills.
+	if !fp.done && fp.frac >= 0.01 && fp.value > 0 {
 		fp.total = int64(float64(fp.value) / fp.frac)
-	}
-	if fp.value > fp.total && !fp.done {
-		fp.total = fp.value
 	}
 }
 
@@ -188,21 +189,42 @@ func (j *job) note(line string) {
 	}
 }
 
-// totals counts the files and the bytes of the download.
+// totals counts the files and the bytes of the download. A file never counts
+// for more than its own size, so a size estimate that came out small cannot
+// make the download look finished. A file whose size is not known yet takes
+// the size of an average file, so the bar does not sit at the end while more
+// files are still waiting.
 func (j *job) totals() (done, count int, bytes, totalBytes int64) {
+	var sizedBytes int64
+	var sized int
 	for _, key := range j.order {
 		fp := j.files[key]
 		count++
 		if fp.done {
 			done++
 		}
+		if fp.total > 0 {
+			sized++
+			sizedBytes += fp.total
+			totalBytes += fp.total
+			if fp.value < fp.total {
+				bytes += fp.value
+			} else {
+				bytes += fp.total
+			}
+			continue
+		}
 		bytes += fp.value
-		totalBytes += fp.total
+	}
+	if waiting := count - sized; waiting > 0 && sized > 0 {
+		totalBytes += sizedBytes / int64(sized) * int64(waiting)
 	}
 	return done, count, bytes, totalBytes
 }
 
-// fraction is how much of the download finished, from 0 to 1.
+// fraction is how much of the download finished, from 0 to 1. Files are
+// weighed by their size, so one file of two finished is halfway only when both
+// are the same size.
 func (j *job) fraction() float64 {
 	done, count, bytes, totalBytes := j.totals()
 	if count == 0 {
