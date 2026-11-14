@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -28,6 +29,7 @@ type fileProgress struct {
 	key    string
 	name   string
 	path   string
+	url    string
 	value  int64
 	total  int64
 	speed  int64
@@ -147,10 +149,51 @@ func (j *job) file(message string) *fileProgress {
 		}
 		return fp
 	}
-	fp := &fileProgress{key: key, name: name, path: path}
+	fp := &fileProgress{key: key, name: name, path: path, url: j.linkFor(key)}
 	j.files[key] = fp
 	j.order = append(j.order, key)
 	return fp
+}
+
+// linkFor returns the link a file came from. A tracker line names the message
+// a file belongs to, and a link names one too, so the message id pairs them;
+// a run of one link hands every file that link, as an album's files share it.
+func (j *job) linkFor(key string) string {
+	if _, msgID, ok := strings.Cut(key, ":"); ok {
+		for _, u := range j.urls {
+			if urlMsgID(u) == msgID {
+				return u
+			}
+		}
+	}
+	if len(j.urls) == 1 {
+		return j.urls[0]
+	}
+	return ""
+}
+
+// urlMsgID reads the message id at the end of a t.me link: /name/123,
+// /s/name/123 and /c/chat/123 all end with it, and a link without one, such
+// as an invite, has none.
+func urlMsgID(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return ""
+	}
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(parts) == 0 {
+		return ""
+	}
+	last := parts[len(parts)-1]
+	if last == "" {
+		return ""
+	}
+	for _, r := range last {
+		if r < '0' || r > '9' {
+			return ""
+		}
+	}
+	return last
 }
 
 // setOverall reads the line of the download as a whole. The left half of the

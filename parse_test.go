@@ -341,3 +341,52 @@ func TestConfigFix(t *testing.T) {
 		t.Fatalf("fixed %+v", cfg)
 	}
 }
+
+// TestEachFileNamesTheLinkItCameFrom pairs every file row with the message it
+// came from, by the message id the tracker line and the link share.
+func TestEachFileNamesTheLinkItCameFrom(t *testing.T) {
+	j := newJob("/tmp", []string{"https://t.me/SWKGGX/42651", "https://t.me/SWKGGX/42652"})
+	j.consume(chatLine + "42652 -> second.mov ...  10.0% [##........] [1.00 MB in 1s; 1.00 MB/s]\n")
+	j.consume(chatLine + "42651 -> first.mov ...  20.0% [####......] [1.00 MB in 1s; 1.00 MB/s]\n")
+	if got := j.files["4385158554:42651"].url; got != "https://t.me/SWKGGX/42651" {
+		t.Fatalf("first file links to %q", got)
+	}
+	if got := j.files["4385158554:42652"].url; got != "https://t.me/SWKGGX/42652" {
+		t.Fatalf("second file links to %q", got)
+	}
+}
+
+// TestOneLinkCoversEveryFileOfItsMessage keeps an album together: its files
+// share a message id that the link names once, and the link matches one id
+// of several only when the id is the one named.
+func TestOneLinkCoversEveryFileOfItsMessage(t *testing.T) {
+	j := newJob("/tmp", []string{"https://t.me/c/3744856297/1812"})
+	j.consume("频道(3744856297):1812 -> clip.mp4 ... done! [326.30 MB in 50s; 6.53 MB/s]\n")
+	if got := j.files["3744856297:1812"].url; got != "https://t.me/c/3744856297/1812" {
+		t.Fatalf("file links to %q", got)
+	}
+
+	// A line whose message the link does not name, in a run of one link,
+	// still belongs to that link.
+	j = newJob("/tmp", []string{"https://t.me/c/3744856297/1812"})
+	j.consume("频道(3744856297):1900 -> other.mp4 ... done! [1.00 MB in 1s; 1.00 MB/s]\n")
+	if got := j.files["3744856297:1900"].url; got != "https://t.me/c/3744856297/1812" {
+		t.Fatalf("file links to %q", got)
+	}
+}
+
+func TestURLMessageID(t *testing.T) {
+	for _, tc := range []struct{ url, want string }{
+		{"https://t.me/SWKGGX/42651", "42651"},
+		{"https://t.me/c/3744856297/1812", "1812"},
+		{"https://t.me/s/SWKGGX/42651", "42651"},
+		{"https://t.me/SWKGGX/42651/", "42651"},
+		{"https://t.me/SWKGGX/42651?single", "42651"},
+		{"https://t.me/joinchat/AbCdEf", ""},
+		{"not a link", ""},
+	} {
+		if got := urlMsgID(tc.url); got != tc.want {
+			t.Fatalf("%s: got %q, want %q", tc.url, got, tc.want)
+		}
+	}
+}

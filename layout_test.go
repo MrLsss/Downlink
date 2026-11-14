@@ -194,3 +194,42 @@ func TestSettingsSectionTitlesStandOut(t *testing.T) {
 		t.Fatalf("标题 %v 高，标签 %v 高，标题不再突出", heading.H, label.H)
 	}
 }
+
+// TestFileRowKeepsItsColumns is the row a long name and a long link make: both
+// cut with an ellipsis inside their own boxes, the bar and the state where they
+// were.
+func TestFileRowKeepsItsColumns(t *testing.T) {
+	const (
+		name = "3744856297_1812_更多视频电报搜索@PandaTVLM_超长文件名用来测试截断效果.mp4"
+		link = "https://t.me/c/3744856297/1812/an/even/longer/path/than/any/link/needs"
+	)
+	for _, size := range []struct{ w, h int }{{1120, 764}, {940, 620}} {
+		a := newApp()
+		j := newJob("/tmp/tdl", []string{link})
+		j.consume("频道(3744856297):1812 -> " + name + " ... done! [326.30 MB in 50s; 6.53 MB/s]\n")
+		j.running = false
+		j.status = statusDone
+		a.job = j
+		tt := ui.NewTester(a.view, size.w, size.h)
+		tt.Frame()
+
+		nameBox, ok := tt.Find(name)
+		if !ok {
+			t.Fatalf("%dx%d: the row does not name the file", size.w, size.h)
+		}
+		linkBox, ok := tt.Find(link)
+		if !ok {
+			t.Fatalf("%dx%d: the row does not show the link", size.w, size.h)
+		}
+		if linkBox.W > linkWidth+0.5 {
+			t.Fatalf("%dx%d: the link box is %v wide, its column is %v", size.w, size.h, linkBox.W, linkWidth)
+		}
+		if right := nameBox.X + nameBox.W; right > linkBox.X-6 {
+			t.Fatalf("%dx%d: the name ends at %v, into the link column at %v", size.w, size.h, right, linkBox.X)
+		}
+		if right := linkBox.X + linkBox.W; right > float32(size.w)-40 {
+			t.Fatalf("%dx%d: the link column ends at %v", size.w, size.h, right)
+		}
+		inside(t, tt, "完成", size.w, size.h)
+	}
+}

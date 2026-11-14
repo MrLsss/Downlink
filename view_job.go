@@ -88,6 +88,7 @@ func (a *app) jobCard(c *ui.Context, pal palette) {
 }
 
 func (a *app) fileRow(c *ui.Context, key string, pal palette) {
+	t := c.Theme()
 	fp := a.job.files[key]
 	state := fmt.Sprintf("%.0f%%", fp.frac*100)
 	ink := pal.muted
@@ -98,7 +99,14 @@ func (a *app) fileRow(c *ui.Context, key string, pal palette) {
 		state, ink = "完成", pal.ok
 	}
 	ui.Row(c).Height(24).Gap(12).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, fp.name).FontSize(sizeMeta).SingleLine().Grow(1).Tooltip(fp.path)
+		name := ui.Text(c, fp.name).FontSize(sizeMeta).SingleLine().Grow(1).Basis(0)
+		if fp.path != "" {
+			name = name.Tooltip(fp.path)
+		}
+		link := ui.Text(c, fp.url).FontSize(sizeMeta).SingleLine().Width(linkWidth).TextColor(t.TextMuted)
+		if fp.url != "" {
+			link = link.Tooltip(fp.url)
+		}
 		ui.Progress(c, fp.frac).Width(90).Height(4)
 		ui.Text(c, state).FontSize(sizeMeta).Width(38).TextAlign(ui.End).TextColor(ink)
 	})

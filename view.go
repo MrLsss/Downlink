@@ -16,6 +16,11 @@ const (
 	sizeLead    = 15
 	sizeBody    = 13
 	sizeMeta    = 11.5
+
+	// linkWidth is the room a file row gives its link. A longer link ends in
+	// an ellipsis and shows whole on hover, so the name beside it and the
+	// bar after it keep their places.
+	linkWidth = 200
 )
 
 // view builds a frame of the window from the app's state.
